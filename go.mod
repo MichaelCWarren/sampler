@@ -1,6 +1,6 @@
 module github.com/sqshq/sampler
 
-go 1.17
+go 1.21
 
 require (
 	github.com/gizak/termui/v3 v3.0.0

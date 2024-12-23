@@ -1,14 +1,16 @@
 package sparkline
 
 import (
+	"fmt"
+	"image"
+	"sync"
+
 	ui "github.com/gizak/termui/v3"
 	"github.com/sqshq/sampler/component"
 	"github.com/sqshq/sampler/component/util"
 	"github.com/sqshq/sampler/config"
 	"github.com/sqshq/sampler/console"
 	"github.com/sqshq/sampler/data"
-	"image"
-	"sync"
 )
 
 // SparkLine displays general shape of a measurement variation over time
@@ -22,6 +24,8 @@ type SparkLine struct {
 	gradient []ui.Color
 	palette  console.Palette
 	mutex    *sync.Mutex
+	min      *float64
+	max      *float64
 }
 
 func NewSparkLine(c config.SparkLineConfig, palette console.Palette) *SparkLine {
@@ -34,7 +38,11 @@ func NewSparkLine(c config.SparkLineConfig, palette console.Palette) *SparkLine 
 		gradient: *c.Gradient,
 		palette:  palette,
 		mutex:    &sync.Mutex{},
+		min:      c.Min,
+		max:      c.Max,
 	}
+
+	fmt.Println("Test: ", line.min)
 
 	go func() {
 		for {
@@ -60,7 +68,16 @@ func (s *SparkLine) consumeSample(sample *data.Sample) {
 
 	s.HandleConsumeSuccess()
 
-	s.values = append(s.values, float)
+	curValue := float
+	if s.min != nil {
+		curValue = max(*s.min, curValue)
+	}
+
+	if s.max != nil {
+		curValue = min(*s.max, curValue)
+	}
+
+	s.values = append(s.values, curValue)
 	max, min := s.values[0], s.values[0]
 
 	for i := len(s.values) - 1; i >= 0; i-- {
@@ -98,16 +115,30 @@ func (s *SparkLine) Draw(buffer *ui.Buffer) {
 	textStyle := ui.NewStyle(s.palette.BaseColor)
 
 	height := s.Dy() - 2
-	minValue := util.FormatValue(s.minValue, s.scale)
-	maxValue := util.FormatValue(s.maxValue, s.scale)
-	curValue := util.FormatValue(0, s.scale)
+	minLabel := util.FormatValue(s.minValue, s.scale)
+	maxLabel := util.FormatValue(s.maxValue, s.scale)
+
+	minValue := s.minValue
+	maxValue := s.maxValue
+
+	if s.min != nil {
+		minLabel = util.FormatValue(*s.min, s.scale)
+		minValue = *s.min
+	}
+
+	if s.max != nil {
+		maxLabel = util.FormatValue(*s.max, s.scale)
+		maxValue = *s.max
+	}
+
+	curLabel := util.FormatValue(0, s.scale)
 
 	if len(s.values) > 0 {
-		curValue = util.FormatValue(s.values[len(s.values)-1], s.scale)
+		curLabel = util.FormatValue(s.values[len(s.values)-1], s.scale)
 	}
 
 	indent := 2 + util.Max([]int{
-		len(minValue), len(maxValue), len(curValue),
+		len(minLabel), len(maxLabel), len(curLabel),
 	})
 
 	for i := len(s.values) - 1; i >= 0; i-- {
@@ -120,8 +151,8 @@ func (s *SparkLine) Draw(buffer *ui.Buffer) {
 
 		top := 0
 
-		if s.maxValue != s.minValue {
-			top = int((s.values[i] - s.minValue) * float64(height) / (s.maxValue - s.minValue))
+		if maxValue != minValue {
+			top = int((s.values[i] - minValue) * float64(height) / (maxValue - minValue))
 		}
 
 		for j := 0; j <= top; j++ {
@@ -129,10 +160,10 @@ func (s *SparkLine) Draw(buffer *ui.Buffer) {
 		}
 
 		if i == len(s.values)-1 {
-			buffer.SetString(curValue, textStyle, image.Pt(s.Inner.Max.X-n-indent+2, s.Inner.Max.Y-top-1))
-			if s.maxValue != s.minValue {
-				buffer.SetString(minValue, textStyle, image.Pt(s.Inner.Max.X-n-indent+2, s.Max.Y-2))
-				buffer.SetString(maxValue, textStyle, image.Pt(s.Inner.Max.X-n-indent+2, s.Min.Y+1))
+			buffer.SetString(curLabel, textStyle, image.Pt(s.Inner.Max.X-n-indent+2, s.Inner.Max.Y-top-1))
+			if maxValue != minValue {
+				buffer.SetString(minLabel, textStyle, image.Pt(s.Inner.Max.X-n-indent+2, s.Max.Y-2))
+				buffer.SetString(maxLabel, textStyle, image.Pt(s.Inner.Max.X-n-indent+2, s.Min.Y+1))
 			}
 		}
 	}
