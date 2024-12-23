@@ -6,6 +6,7 @@ import (
 	"time"
 
 	ui "github.com/gizak/termui/v3"
+	"github.com/lunixbochs/vtclean"
 	"github.com/sqshq/sampler/config"
 )
 
@@ -71,11 +72,8 @@ func (i *Item) execute(variables []string, script string) (string, error) {
 		return "", err
 	}
 
-	return string(output), nil
-
-	// o := string(output)
-
-	// return vtclean.Clean(o, false), nil
+	o := string(output)
+	return vtclean.Clean(o, false), nil
 }
 
 func (i *Item) initInteractiveShell(v []string) error {
