@@ -90,7 +90,7 @@ textboxes:
   - title: Docker containers stats
     position: [[0, 29], [45, 10]]
     rate-ms: 500
-    sample: docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.PIDs}}"
+    sample: curl -s  http://192.168.4.3:42069/wireguard | jq -r '(["Name","RX","TX", "Is Connected?"] | (., map(length*"-"))), (.[] | [.name, .friendlyRx, .friendlyTx, .isConnected]) | @tsv' | column -ts $'\t'
   - title: Local weather
     position: [[69, 31], [13, 7]]
     rate-ms: 10000

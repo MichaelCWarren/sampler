@@ -1,12 +1,12 @@
 package data
 
 import (
-	ui "github.com/gizak/termui/v3"
-	"github.com/lunixbochs/vtclean"
-	"github.com/sqshq/sampler/config"
 	"os"
 	"os/exec"
 	"time"
+
+	ui "github.com/gizak/termui/v3"
+	"github.com/sqshq/sampler/config"
 )
 
 const errorThreshold = 10
@@ -71,9 +71,11 @@ func (i *Item) execute(variables []string, script string) (string, error) {
 		return "", err
 	}
 
-	o := string(output)
+	return string(output), nil
 
-	return vtclean.Clean(o, false), nil
+	// o := string(output)
+
+	// return vtclean.Clean(o, false), nil
 }
 
 func (i *Item) initInteractiveShell(v []string) error {
